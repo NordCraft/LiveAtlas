@@ -27,6 +27,7 @@ import {Store} from "@/store";
 import LiveAtlasMapDefinition from "@/model/LiveAtlasMapDefinition";
 import {globalMessages, serverMessages} from "../messages";
 import ConfigurationError from "@/errors/ConfigurationError";
+import {translations} from "./locales";
 
 const documentRange = document.createRange(),
 	brToSpaceRegex = /<br ?\/?>/g;
@@ -267,8 +268,11 @@ export const clipboardError = (store: Store) => (e: Error) => {
  * contain a complete or subset of keys from LiveAtlasMessageConfig, additional keys will be ignored.
  */
 export const getMessages = (config: any = {}) => {
-	return Object.assign(_getMessages(globalMessages, config),
-		_getMessages(serverMessages, config)) as LiveAtlasMessageConfig;
+	const lang = localStorage.getItem('liveatlas_lang') || 'en';
+	const baseTranslations = translations[lang] || translations['en'];
+	const mergedConfig = Object.assign({}, baseTranslations, config);
+	return Object.assign(_getMessages(globalMessages, mergedConfig),
+		_getMessages(serverMessages, mergedConfig)) as LiveAtlasMessageConfig;
 }
 
 /**

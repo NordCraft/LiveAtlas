@@ -5,7 +5,8 @@ import { resolve } from 'path';
 import vue from '@vitejs/plugin-vue';
 import svgSpritePlugin from "vite-plugin-svg-sprite-component";
 import analyze from 'rollup-plugin-analyzer';
-import { splitVendorChunkPlugin } from 'vite'
+import { splitVendorChunkPlugin } from 'vite';
+import { readFileSync } from 'fs';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd())
@@ -20,6 +21,8 @@ export default defineConfig(({ mode }) => {
     },
     {},
   );
+
+  const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'));
 
   return {
     plugins: [splitVendorChunkPlugin(), vue(), analyze(), svgSpritePlugin({
@@ -43,7 +46,10 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 600,
       assetsDir: 'live-atlas/assets'
     },
-    define: envWithProcessPrefix,
+    define: {
+      ...envWithProcessPrefix,
+      'process.env.VITE_APP_VERSION': `"${pkg.version}"`,
+    },
     test: {
       globals: true,
       environment: 'jsdom',

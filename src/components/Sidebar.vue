@@ -17,6 +17,13 @@
 <template>
 	<section class="sidebar" role="none" ref="sidebar">
 		<header class="sidebar__buttons">
+			<button type="button"
+              class="button--lang"
+              :title="currentLanguage === 'en' ? 'Сменить язык на Русский' : 'Switch language to English'"
+              :aria-label="currentLanguage === 'en' ? 'Сменить язык на Русский' : 'Switch language to English'"
+              @click="toggleLanguage">
+				<span style="font-weight: bold; font-size: 1.2rem; text-shadow: var(--text-shadow); color: var(--text-emphasis);">{{ currentLanguageName }}</span>
+			</button>
 			<button ref="maps-button" v-if="mapCount > 1 || serverCount > 1" type="button"
               class="button--maps" data-section="maps"
               :title="mapCount > 1 ? messageWorlds : messageServers"
@@ -150,6 +157,15 @@ export default defineComponent({
 		watch(mapsVisible, newValue => newValue && !firstLoad.value && nextTick(() => focusSection('maps')));
 		watch(markersVisible, newValue => newValue && !firstLoad.value && nextTick(() => focusSection('markers')));
 
+		const currentLanguage = ref(localStorage.getItem('liveatlas_lang') || 'en'),
+			currentLanguageName = computed(() => currentLanguage.value.toUpperCase()),
+			toggleLanguage = () => {
+				const nextLang = currentLanguage.value === 'en' ? 'ru' : 'en';
+				localStorage.setItem('liveatlas_lang', nextLang);
+				currentLanguage.value = nextLang;
+				window.location.reload();
+			};
+
 		return {
 			sidebar,
 
@@ -173,6 +189,10 @@ export default defineComponent({
 			handleSidebarKeydown,
 			handleSectionKeydown,
 			handleSectionClick,
+
+			currentLanguage,
+			currentLanguageName,
+			toggleLanguage,
 		}
 	},
 });

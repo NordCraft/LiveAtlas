@@ -1,5 +1,6 @@
 # LiveAtlas [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![Discord](https://img.shields.io/discord/390942438061113344?color=8C9CFE&label=discord&logo=discord&logoColor=white)](https://discord.gg/DBduB9qyv3) [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/JLyne/LiveAtlas/main.yml?branch=master)](https://github.com/JLyne/LiveAtlas/actions)
 
+🇷🇺 Для документации на русском языке смотрите [README_ru.md](file:///home/bve/LiveAtlas/README_ru.md).
 
 A map frontend built with [Vue.js](https://github.com/vuejs/vue) and Typescript. Supports [Dynmap](https://github.com/webbukkit/dynmap), [Squaremap](https://github.com/jpenilla/squaremap), [Pl3xmap](https://github.com/NeumimTo/Pl3xMap) and [Overviewer](https://github.com/overviewer/Minecraft-Overviewer).
 
@@ -7,46 +8,79 @@ A map frontend built with [Vue.js](https://github.com/vuejs/vue) and Typescript.
 
 LiveAtlas is an alternative frontend which aims to provide a more modern interface and improved performance for busy maps. LiveAtlas is a drop-in replacement for Dynmap; Squaremap, Pl3xmap and Overviewer maps are supported with some additional configuration.
 
-Development is ongoing, but the major features of each map plugin are supported.
+---
 
-You can see it in action [here](https://minecraft.rtgame.co.uk/map/build)
+## Standalone Node.js/TypeScript Backend
+This version of LiveAtlas features a complete replacement of the legacy PHP standalone webserver scripts (`update.php`, `MySQL_tiles.php`, etc.) with a single, high-performance Node.js/TypeScript backend server.
 
-## Supported map features
-[See the wiki](https://github.com/JLyne/LiveAtlas/wiki/Supported-Maps-and-Features)
+### Features
+1. **Zero PHP Dependency:** Run your standalone LiveAtlas map using only Node.js.
+2. **S3-Compatible Storage Support:** Pull and serve map tiles directly from AWS S3, Cloudflare R2, MinIO, Yandex Object Storage, or any other S3-compatible service.
+3. **Database Compatibility:** Fetch tiles, configurations, and user authentication details from **MySQL**, **MariaDB**, or **PostgreSQL**.
+4. **Built-in i18n (RU/EN):** A built-in language toggle button is added to the sidebar allowing users to dynamically switch the entire interface between Russian and English.
 
-## Supported Browsers
-- Chrome 66+
-- Edge 80+
-- Firefox 60+
-- Opera 53+
-- Safari 11.1+
+---
 
-IE is not supported
+## Backend Configuration
+Create a `.env` file in the root directory to configure the backend:
 
-## Download
-LiveAtlas is available on [SpigotMC](https://www.spigotmc.org/resources/liveatlas-a-dynmap-frontend-for-the-modern-web.86939/), [Polymart](https://polymart.org/resource/liveatlas-alternative-map-ui.1977) and [MCMarket](https://www.mc-market.org/resources/22740/)
+```ini
+# Port for the LiveAtlas Express server
+PORT=8082
 
-Dev builds are available in [Github actions](https://github.com/JLyne/LiveAtlas/actions/workflows/main.yml)
+# Storage Type: filetree, db, or s3
+STORAGE_TYPE=filetree
 
-## Installation
-[See the wiki](https://github.com/JLyne/LiveAtlas/wiki/Installation)
+# Absolute path to your Dynmap plugin data folder (required for local configuration/update files)
+DYNMAP_DIR=/path/to/plugins/dynmap
 
-## Customisation
-The index.html file can be edited to add custom favicons, styles or analytics, just like the map plugins original UIs. All LiveAtlas messages can also be modified here for translation purposes.
-You are also free to build LiveAtlas yourself to make further changes.
+# Database Settings (Required if STORAGE_TYPE=db or using login database)
+DB_TYPE=mysql # mysql, mariadb, or postgres
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=dynmap
+DB_PASSWORD=secret_password
+DB_NAME=dynmap
+DB_PREFIX=dynmap_
 
-## Building
-This repository uses [yarn zero-installs](https://yarnpkg.com/features/zero-installs), so all dependencies are provided without installing. You can run `yarn run serve` to start a local dev server, or `yarn run build` to build LiveAtlas.
+# S3 Settings (Required if STORAGE_TYPE=s3)
+S3_ENDPOINT=https://s3.amazonaws.com
+S3_REGION=us-east-1
+S3_BUCKET=my-dynmap-tiles-bucket
+S3_ACCESS_KEY_ID=my_access_key
+S3_SECRET_ACCESS_KEY=my_secret_key
+S3_PATH_PREFIX=tiles/
+```
 
-## Support
-If you find a bug, please create an issue with as must detail as possible. I'm working on this in my spare time, so fixes are on a best effort basis, but I'll eventually find time for them.
+---
 
-Please do not contact the Dynmap, Squaremap, Pl3xmap or Overviewer teams regarding any issue with LiveAtlas. They will be very upset.
+## Building and Running
 
-## Donate
-If you appreciate my work, feel free to:
+### 1. Install Dependencies
+```bash
+yarn install
+```
 
-<a href='https://ko-fi.com/jlyne' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
-___
-  
-Cross-browser testing provided by [Browserstack](http://browserstack.com/).
+### 2. Build Frontend and Backend
+```bash
+yarn run build
+```
+This builds the SPA files to `dist/`, packages the Spigot plugin, and compiles the TypeScript backend to `backend/dist/`.
+
+### 3. Run Dev Server
+```bash
+yarn run backend:dev
+```
+
+### 4. Run Production Server
+```bash
+yarn run backend:start
+```
+The server will start listening on the configured `PORT` (default `8082`).
+
+---
+
+## Footnote on AI Development
+
+> [!NOTE]
+> Parts of this codebase (specifically the TypeScript Express server, PostgreSQL/MariaDB/MySQL integration, S3 client adapter, and the language switching frontend utility) were developed in collaboration with an AI pair programmer (Google DeepMind's Advanced Agentic Coding assistant).

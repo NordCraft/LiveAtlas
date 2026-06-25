@@ -15,10 +15,10 @@
   -->
 
 <template>
+	<Sidebar></Sidebar>
 	<Map></Map>
 	<ChatBox v-if="chatBoxEnabled" v-show="chatBoxEnabled && chatVisible"></ChatBox>
 	<LoginModal v-if="loginEnabled" v-show="loginModalVisible" :required="loginRequired"></LoginModal>
-	<Sidebar></Sidebar>
 	<notifications position="bottom center" :speed="250" :max="3" :ignoreDuplicates="true" classes="notification" />
 </template>
 

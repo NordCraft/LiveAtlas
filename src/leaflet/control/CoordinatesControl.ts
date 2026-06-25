@@ -50,7 +50,7 @@ export class CoordinatesControl extends Control {
 		this._chunkContainer = DomUtil.create('span', 'value chunk');
 		this._regionContainer = DomUtil.create('span', 'value region');
 
-		options.position = 'bottomleft';
+		options.position = 'bottomcenter' as any;
 		Util.setOptions(this, options);
 	}
 

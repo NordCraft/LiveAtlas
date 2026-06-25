@@ -93,9 +93,33 @@
 
 .leaflet-control-zoom {
 	flex-shrink: 0;
+	position: fixed !important;
+	top: 50% !important;
+	right: calc(var(--ui-element-spacing) * 2) !important;
+	transform: translateY(-50%) !important;
+	z-index: 1005 !important;
+	margin: 0 !important;
+	transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 
 	a {
 		font-family: sans-serif; /* +/- look better */
+	}
+
+	@media (max-width: 480px) {
+		right: var(--ui-element-spacing) !important;
+		top: auto !important;
+		bottom: calc(var(--ui-element-spacing) * 2 + var(--ui-button-size)) !important;
+		transform: none !important;
+	}
+}
+
+/* Shift zoom controls left when sidebar is expanded */
+.sidebar.sidebar--open ~ .map .leaflet-control-zoom {
+	right: calc(26rem + (var(--ui-element-spacing) * 3)) !important;
+
+	@media (max-width: 480px) {
+		right: calc(var(--ui-element-spacing) + 26rem) !important;
+		display: none; /* Hide on mobile to avoid overlap */
 	}
 }
 
@@ -303,6 +327,29 @@
 
 	.leaflet-control {
 		margin: 0;
+	}
+}
+
+.leaflet-bottom.leaflet-center {
+	display: flex;
+	flex-direction: column !important;
+	align-items: center !important;
+	justify-content: flex-end !important;
+	bottom: var(--ui-element-spacing) !important;
+	left: 50% !important;
+	right: auto !important;
+	transform: translateX(-50%) !important;
+	width: auto !important;
+	z-index: 1004 !important;
+	pointer-events: none;
+
+	.leaflet-control {
+		pointer-events: auto;
+		margin: 0 0 var(--ui-element-spacing) 0 !important;
+		
+		&:last-child {
+			margin-bottom: 0 !important;
+		}
 	}
 }
 

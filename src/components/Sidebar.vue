@@ -15,7 +15,7 @@
   -->
 
 <template>
-	<section class="sidebar" role="none" ref="sidebar">
+	<section :class="['sidebar', { 'sidebar--open': isOpen }]" role="none" ref="sidebar">
 		<header class="sidebar__buttons">
 			<button type="button"
               class="button--lang"
@@ -112,6 +112,9 @@ export default defineComponent({
 				//Show following alongside playerlist on small screens
 				return (!smallScreen.value && following.value)
 					|| (smallScreen.value && playersVisible.value);
+			}),
+			isOpen = computed(() => {
+				return mapsVisible.value || markersVisible.value || playersVisible.value || !!(following.value && !smallScreen.value);
 			});
 
 		//Arrow key section navigation
@@ -183,6 +186,7 @@ export default defineComponent({
 			mapsVisible,
 			markersVisible,
 			followVisible,
+			isOpen,
 			playerMakersEnabled,
 			markerUIEnabled,
 

@@ -109,13 +109,13 @@ async function getTileFromDb(tilePath) {
         const tTable = tilesTables[i];
         const mTable = mapsTables[i];
         let sql = `
-			SELECT t.Image, t.Format FROM "${tTable}" t
+			SELECT t.Image, t.NewImage, t.Format FROM "${tTable}" t
 			JOIN "${mTable}" m ON t.MapID = m.ID
 			WHERE m.WorldID = $1 AND m.MapID = $2 AND t.x = $3 AND t.y = $4 AND t.zoom = $5
 		`;
         if (dbType !== 'postgres') {
             sql = `
-				SELECT t.Image, t.Format FROM \`${tTable}\` t
+				SELECT t.Image, t.NewImage, t.Format FROM \`${tTable}\` t
 				JOIN \`${mTable}\` m ON t.MapID = m.ID
 				WHERE m.WorldID = ? AND m.MapID = ? AND t.x = ? AND t.y = ? AND t.zoom = ?
 			`;

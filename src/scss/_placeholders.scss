@@ -46,12 +46,16 @@
 }
 
 %panel {
-	background-color: var(--background-base);
+	background: var(--background-base);
+	backdrop-filter: blur(16px) saturate(180%);
+	-webkit-backdrop-filter: blur(16px) saturate(180%);
 	color: var(--text-base);
 	border-radius: var(--border-radius);
+	border: 1px solid var(--border-color);
 	box-shadow: var(--box-shadow);
 	display: flex;
 	flex-direction: column;
 	padding: 1.5rem;
 	position: relative;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

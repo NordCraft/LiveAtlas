@@ -210,10 +210,22 @@ app.get(['/standalone/update', '/standalone/MySQL_update.php', '/standalone/upda
     res.status(404).json({ error: 'Update not found' });
 });
 // 5. Send Chat Message
-app.post(['/standalone/sendmessage', '/standalone/MySQL_sendmessage.php', '/standalone/sendmessage.php'], async (req, res) => {
+app.post(['/standalone/sendmessage', '/standalone/MySQL_sendmessage.php', '/standalone/sendmessage.php'], express_1.default.text({ type: '*/*' }), async (req, res) => {
+    let body = req.body;
+    if (typeof body === 'string') {
+        try {
+            body = JSON.parse(body);
+        }
+        catch (e) {
+            try {
+                body = Object.fromEntries(new URLSearchParams(body));
+            }
+            catch (err) { }
+        }
+    }
     const ip = req.ip || req.socket.remoteAddress || '127.0.0.1';
-    const name = req.body.name || null;
-    const message = req.body.message;
+    const name = body?.name || null;
+    const message = body?.message;
     if (!message) {
         return res.status(400).json({ error: 'Message is required' });
     }

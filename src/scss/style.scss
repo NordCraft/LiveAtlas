@@ -75,25 +75,30 @@ button, [type=button] {
 
 input {
 	appearance: none;
-	background-color: var(--background-light);
+	background: var(--background-light);
 	box-shadow: none;
 	color: var(--text-base);
 	font-size: 1.6rem;
-	padding: 1rem;
-	border: 0.2rem solid var(--border-color);
-	border-radius: 0.3rem;
+	padding: 0.8rem 1.2rem;
+	border: 1px solid var(--border-color);
+	border-radius: 0.8rem;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
 	&:focus {
 		color: var(--text-emphasis);
-		outline-color: var(--text-emphasis);
+		border-color: var(--outline-focus);
+		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+		outline: none !important;
 	}
 
 	@include focus-reset {
 		color: var(--text-base);
+		border-color: var(--border-color);
+		box-shadow: none;
 	}
 
 	&[disabled] {
-		background-color: var(--background-disabled);
+		background: var(--background-disabled);
 		border-color: var(--border-color);
 		cursor: not-allowed;
 	}

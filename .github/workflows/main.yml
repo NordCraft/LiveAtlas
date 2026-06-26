@@ -39,14 +39,14 @@ jobs:
         run: cp LICENSE.md dist/
 
       - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: 'live-atlas'
           path: 'dist/'
           if-no-files-found: error
 
       - name: Upload Java Plugin Jar
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: 'live-atlas-jar'
           path: 'java/target/*.jar'

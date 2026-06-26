@@ -55,6 +55,7 @@ export default class DynmapMapProvider extends MapProvider {
 
 	private markerSets: Map<string, LiveAtlasMarkerSet> = new Map();
 	private markers = new Map<string, Map<string, LiveAtlasMarker>>();
+	private socket: WebSocket | null = null;
 
 	constructor(name: string, config: DynmapUrlConfig) {
 		super(name, config);
@@ -147,18 +148,7 @@ export default class DynmapMapProvider extends MapProvider {
 		return new DynmapTileLayer(options);
 	}
 
-	private async getUpdate(): Promise<void> {
-		let url = this.config.update;
-		url = url.replace('{world}', encodeURIComponent(this.store.state.currentWorld!.name));
-		url = url.replace('{timestamp}', this.updateTimestamp.getTime().toString());
-
-		if(this.updateAbort) {
-			this.updateAbort.abort();
-		}
-
-		this.updateAbort = new AbortController();
-
-		const response = await this.getJSON(url, this.updateAbort.signal);
+	private async processUpdate(response: any): Promise<void> {
 		const players: Set<LiveAtlasPlayer> = new Set(),
 			updates = buildUpdates(response.updates || [], this.updateTimestamp, this.config),
 			worldState = {
@@ -186,24 +176,6 @@ export default class DynmapMapProvider extends MapProvider {
 				}
 			});
 		});
-
-		//Extra fake players for testing
-		// for(let i = 0; i < 450; i++) {
-		// 	players.add({
-		// 		account: "VIDEO GAMES " + i,
-		// 		health: Math.round(Math.random() * 10),
-		// 		armor: Math.round(Math.random() * 10),
-		// 		name: "VIDEO GAMES " + i,
-		// 		sort: Math.round(Math.random() * 10),
-		// 		hidden: false,
-		// 		location: {
-		// 			x: Math.round(Math.random() * 1000) - 500,
-		// 			y: 64,
-		// 			z: Math.round(Math.random() * 1000) - 500,
-		// 			world: "world",
-		// 		}
-		// 	});
-		// }
 
 		this.updateTimestamp = new Date(response.timestamp || 0);
 
@@ -259,40 +231,79 @@ export default class DynmapMapProvider extends MapProvider {
 
 	startUpdates() {
 		this.updatesEnabled = true;
-		this.update();
+		this.connectSocket();
 	}
 
-	private async update() {
-		try {
-			await this.getUpdate();
-		} finally {
-			if(this.updatesEnabled) {
-				if(this.updateTimeout) {
-					clearTimeout(this.updateTimeout);
-				}
+	private connectSocket() {
+		if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
+			this.sendSubscription();
+			return;
+		}
 
-				this.updateTimeout = setTimeout(() => this.update(), this.updateInterval);
+		const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+		const host = window.location.host || 'localhost:8082';
+		const wsUrl = `${protocol}//${host}/ws`;
+
+		console.log(`[WS] Connecting to ${wsUrl}`);
+		this.socket = new WebSocket(wsUrl);
+
+		this.socket.onopen = () => {
+			console.log('[WS] Connected');
+			this.sendSubscription();
+		};
+
+		this.socket.onmessage = (event) => {
+			try {
+				const message = JSON.parse(event.data);
+				if (message.type === 'update') {
+					this.processUpdate(message.data);
+				}
+			} catch (e) {
+				console.error('[WS] Failed to parse message', e);
 			}
+		};
+
+		this.socket.onclose = (event) => {
+			console.log('[WS] Disconnected, code:', event.code);
+			if (this.updatesEnabled) {
+				setTimeout(() => this.connectSocket(), 3000);
+			}
+		};
+
+		this.socket.onerror = (error) => {
+			console.error('[WS] Error:', error);
+		};
+	}
+
+	private sendSubscription() {
+		if (this.socket && this.socket.readyState === WebSocket.OPEN && this.store.state.currentWorld) {
+			const sub = {
+				type: 'subscribe',
+				world: this.store.state.currentWorld.name
+			};
+			this.socket.send(JSON.stringify(sub));
 		}
 	}
 
 	stopUpdates() {
 		this.updatesEnabled = false;
 
+		if (this.socket) {
+			this.socket.close();
+			this.socket = null;
+		}
+
 		if (this.updateTimeout) {
 			clearTimeout(this.updateTimeout);
 		}
-
 		this.updateTimeout = null;
 
 		if(this.configurationAbort) {
 			this.configurationAbort.abort();
 		}
-
 		if(this.updateAbort) {
 			this.updateAbort.abort();
 		}
-
 		if(this.markersAbort) {
 			this.markersAbort.abort();
 		}

@@ -119,7 +119,7 @@ export default defineComponent({
 		&.player--hidden:not(:hover),
 		&.player--other-world:not(:hover) {
 			.player__name {
-				opacity: 0.5;
+				color: var(--text-subtle);
 			}
 		}
 

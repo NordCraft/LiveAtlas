@@ -87,7 +87,7 @@ input {
 	&:focus {
 		color: var(--text-emphasis);
 		border-color: var(--outline-focus);
-		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+		box-shadow: none;
 		outline: none !important;
 	}
 
@@ -374,7 +374,6 @@ img {
 	background-color: var(--background-error);
 	border-radius: var(--border-radius);
 }
-
 @media print {
 	@page {
 		size: 297mm 210mm;

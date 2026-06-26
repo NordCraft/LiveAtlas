@@ -1,11 +1,15 @@
-.DS_Store
-/node_modules
-/dist
+# Dependency directories
+/node_modules/
+/dist/
+/backend/dist/
+
+# Standalone dynmap data
 /public/standalone/
 
-# local env files
+# Local env files
 .env.local
 .env.*.local
+.env
 
 # Log files
 npm-debug.log*
@@ -14,10 +18,18 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Editor directories and files
-/.cache/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*~
+
+# Test coverage
 /coverage/
 
-# yarn
+# Yarn
 .yarn/*
 !.yarn/cache
 !.yarn/patches
@@ -25,3 +37,6 @@ pnpm-debug.log*
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# TS build info
+*.tsbuildinfo

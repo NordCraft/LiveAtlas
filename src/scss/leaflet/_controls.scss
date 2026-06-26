@@ -44,7 +44,9 @@
 	align-items: center;
 	padding: 0;
 	border: none;
+	border-radius: var(--border-radius);
 	box-shadow: var(--box-shadow);
+	overflow: hidden;
 
 	a {
 		border-radius: 0;
@@ -113,15 +115,7 @@
 	}
 }
 
-/* Shift zoom controls left when sidebar is expanded */
-.sidebar.sidebar--open ~ .map .leaflet-control-zoom {
-	right: calc(26rem + (var(--ui-element-spacing) * 3)) !important;
 
-	@media (max-width: 480px) {
-		right: calc(var(--ui-element-spacing) + 26rem) !important;
-		display: none; /* Hide on mobile to avoid overlap */
-	}
-}
 
 .leaflet-control-coordinates {
 	display: flex;

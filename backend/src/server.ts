@@ -19,9 +19,13 @@ import {
 } from './db';
 import { getTileFromS3 } from './s3';
 
+import { WebSocketServer, WebSocket } from 'ws';
+import http from 'http';
+
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 8082;
 const storageType = (process.env.STORAGE_TYPE || 'filetree').toLowerCase();
 const dynmapDir = process.env.DYNMAP_DIR || path.join(process.cwd(), '../dynmap');
@@ -93,7 +97,10 @@ app.get(['/standalone/tiles', '/standalone/MySQL_tiles.php', '/standalone/tiles.
 		return res.sendFile(localTilePath);
 	}
 
-	res.status(404).send('Tile not found');
+	// If tile not found, send a placeholder SVG
+	res.setHeader('Content-Type', 'image/svg+xml');
+	res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+	return res.sendFile(path.join(__dirname, '../assets/no_tile.svg'));
 });
 
 // 2. Get Markers
@@ -407,19 +414,136 @@ app.post(['/standalone/logout'], (req, res) => {
 
 // Serve frontend static assets from 'dist' directory
 const frontendDist = path.join(__dirname, '../../dist');
-app.use(express.static(frontendDist));
 
-// Fallback to index.html for SPA routing
-app.get('/*splat', (req, res) => {
+// Serve index.html with Cache-Control headers for the root route to prevent caching
+app.get('/', (req, res) => {
 	const indexPath = path.join(frontendDist, 'index.html');
 	if (fs.existsSync(indexPath)) {
+		res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
 		res.sendFile(indexPath);
 	} else {
 		res.status(404).send('LiveAtlas frontend build not found. Please run: yarn build');
 	}
 });
 
-app.listen(Number(PORT), '0.0.0.0', () => {
+app.use(express.static(frontendDist));
+
+// Fallback to index.html for SPA routing
+app.get('/*splat', (req, res) => {
+	const indexPath = path.join(frontendDist, 'index.html');
+	if (fs.existsSync(indexPath)) {
+		res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+		res.sendFile(indexPath);
+	} else {
+		res.status(404).send('LiveAtlas frontend build not found. Please run: yarn build');
+	}
+});
+
+// WebSocket Server implementation
+const wss = new WebSocketServer({ noServer: true });
+
+interface Client {
+	ws: WebSocket;
+	subscribedWorld: string | null;
+}
+
+const clients: Set<Client> = new Set();
+
+async function sendWorldUpdate(client: Client) {
+	const world = client.subscribedWorld;
+	if (!world) return;
+
+	let data: any = null;
+
+	if (storageType === 'db') {
+		let dbUpdate = await getStandaloneFileFromDb(`standalone/dynmap_${world}.json`);
+		if (!dbUpdate) {
+			dbUpdate = await getStandaloneFileFromDb(`dynmap_${world}.json`);
+		}
+		if (dbUpdate) {
+			try {
+				data = JSON.parse(dbUpdate);
+			} catch (e) {
+				console.error(`[WS] Failed to parse DB update for world ${world}`, e);
+			}
+		}
+	} else {
+		let localUpdatePath = path.join(dynmapDir, `standalone/dynmap_${world}.json`);
+		if (!fs.existsSync(localUpdatePath)) {
+			localUpdatePath = path.join(dynmapDir, `dynmap_${world}.json`);
+		}
+		if (fs.existsSync(localUpdatePath)) {
+			try {
+				const updateText = fs.readFileSync(localUpdatePath, 'utf8');
+				data = JSON.parse(updateText);
+			} catch (err) {
+				console.error(`[WS] Failed to read local update for world ${world}`, err);
+			}
+		}
+	}
+
+	if (data && client.ws.readyState === WebSocket.OPEN) {
+		client.ws.send(JSON.stringify({
+			type: 'update',
+			data: data
+		}));
+	}
+}
+
+wss.on('connection', (ws: WebSocket) => {
+	const client: Client = { ws, subscribedWorld: null };
+	clients.add(client);
+	console.log('[WS] Client connected');
+
+	ws.on('message', (messageString) => {
+		try {
+			const message = JSON.parse(messageString.toString());
+			if (message.type === 'subscribe') {
+				client.subscribedWorld = message.world;
+				console.log(`[WS] Client subscribed to world: ${message.world}`);
+				sendWorldUpdate(client).catch(err => {
+					console.error('[WS] Error sending initial update', err);
+				});
+			} else if (message.type === 'unsubscribe') {
+				client.subscribedWorld = null;
+			}
+		} catch (e) {
+			console.error('[WS] Error processing client message', e);
+		}
+	});
+
+	ws.on('close', () => {
+		clients.delete(client);
+		console.log('[WS] Client disconnected');
+	});
+});
+
+// Upgrade HTTP to WS connection on /ws path
+server.on('upgrade', (request, socket, head) => {
+	const pathname = new URL(request.url || '', `http://${request.headers.host}`).pathname;
+	if (pathname === '/ws') {
+		wss.handleUpgrade(request, socket, head, (ws) => {
+			wss.emit('connection', ws, request);
+		});
+	} else {
+		socket.destroy();
+	}
+});
+
+// Periodically send updates every 2 seconds to all active WebSocket subscriptions
+setInterval(async () => {
+	for (const client of clients) {
+		if (client.subscribedWorld && client.ws.readyState === WebSocket.OPEN) {
+			try {
+				await sendWorldUpdate(client);
+			} catch (e) {
+				console.error('[WS] Error in periodic update interval', e);
+			}
+		}
+	}
+}, 2000);
+
+server.listen(Number(PORT), '0.0.0.0', () => {
 	console.log(`=========================================`);
 	console.log(` LiveAtlas Node Backend is running!`);
 	console.log(` Port: ${PORT}`);

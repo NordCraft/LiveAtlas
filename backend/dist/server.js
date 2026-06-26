@@ -11,8 +11,11 @@ const crypto_1 = __importDefault(require("crypto"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const db_1 = require("./db");
 const s3_1 = require("./s3");
+const ws_1 = require("ws");
+const http_1 = __importDefault(require("http"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
+const server = http_1.default.createServer(app);
 const PORT = process.env.PORT || 8082;
 const storageType = (process.env.STORAGE_TYPE || 'filetree').toLowerCase();
 const dynmapDir = process.env.DYNMAP_DIR || path_1.default.join(process.cwd(), '../dynmap');
@@ -77,7 +80,10 @@ app.get(['/standalone/tiles', '/standalone/MySQL_tiles.php', '/standalone/tiles.
     if (fs_1.default.existsSync(localTilePath)) {
         return res.sendFile(localTilePath);
     }
-    res.status(404).send('Tile not found');
+    // If tile not found, send a placeholder SVG
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    return res.sendFile(path_1.default.join(__dirname, '../assets/no_tile.svg'));
 });
 // 2. Get Markers
 app.get(['/standalone/markers', '/standalone/MySQL_markers.php', '/standalone/markers.php'], async (req, res) => {
@@ -358,18 +364,126 @@ app.post(['/standalone/logout'], (req, res) => {
 });
 // Serve frontend static assets from 'dist' directory
 const frontendDist = path_1.default.join(__dirname, '../../dist');
-app.use(express_1.default.static(frontendDist));
-// Fallback to index.html for SPA routing
-app.get('/*splat', (req, res) => {
+// Serve index.html with Cache-Control headers for the root route to prevent caching
+app.get('/', (req, res) => {
     const indexPath = path_1.default.join(frontendDist, 'index.html');
     if (fs_1.default.existsSync(indexPath)) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.sendFile(indexPath);
     }
     else {
         res.status(404).send('LiveAtlas frontend build not found. Please run: yarn build');
     }
 });
-app.listen(Number(PORT), '0.0.0.0', () => {
+app.use(express_1.default.static(frontendDist));
+// Fallback to index.html for SPA routing
+app.get('/*splat', (req, res) => {
+    const indexPath = path_1.default.join(frontendDist, 'index.html');
+    if (fs_1.default.existsSync(indexPath)) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.sendFile(indexPath);
+    }
+    else {
+        res.status(404).send('LiveAtlas frontend build not found. Please run: yarn build');
+    }
+});
+// WebSocket Server implementation
+const wss = new ws_1.WebSocketServer({ noServer: true });
+const clients = new Set();
+async function sendWorldUpdate(client) {
+    const world = client.subscribedWorld;
+    if (!world)
+        return;
+    let data = null;
+    if (storageType === 'db') {
+        let dbUpdate = await (0, db_1.getStandaloneFileFromDb)(`standalone/dynmap_${world}.json`);
+        if (!dbUpdate) {
+            dbUpdate = await (0, db_1.getStandaloneFileFromDb)(`dynmap_${world}.json`);
+        }
+        if (dbUpdate) {
+            try {
+                data = JSON.parse(dbUpdate);
+            }
+            catch (e) {
+                console.error(`[WS] Failed to parse DB update for world ${world}`, e);
+            }
+        }
+    }
+    else {
+        let localUpdatePath = path_1.default.join(dynmapDir, `standalone/dynmap_${world}.json`);
+        if (!fs_1.default.existsSync(localUpdatePath)) {
+            localUpdatePath = path_1.default.join(dynmapDir, `dynmap_${world}.json`);
+        }
+        if (fs_1.default.existsSync(localUpdatePath)) {
+            try {
+                const updateText = fs_1.default.readFileSync(localUpdatePath, 'utf8');
+                data = JSON.parse(updateText);
+            }
+            catch (err) {
+                console.error(`[WS] Failed to read local update for world ${world}`, err);
+            }
+        }
+    }
+    if (data && client.ws.readyState === ws_1.WebSocket.OPEN) {
+        client.ws.send(JSON.stringify({
+            type: 'update',
+            data: data
+        }));
+    }
+}
+wss.on('connection', (ws) => {
+    const client = { ws, subscribedWorld: null };
+    clients.add(client);
+    console.log('[WS] Client connected');
+    ws.on('message', (messageString) => {
+        try {
+            const message = JSON.parse(messageString.toString());
+            if (message.type === 'subscribe') {
+                client.subscribedWorld = message.world;
+                console.log(`[WS] Client subscribed to world: ${message.world}`);
+                sendWorldUpdate(client).catch(err => {
+                    console.error('[WS] Error sending initial update', err);
+                });
+            }
+            else if (message.type === 'unsubscribe') {
+                client.subscribedWorld = null;
+            }
+        }
+        catch (e) {
+            console.error('[WS] Error processing client message', e);
+        }
+    });
+    ws.on('close', () => {
+        clients.delete(client);
+        console.log('[WS] Client disconnected');
+    });
+});
+// Upgrade HTTP to WS connection on /ws path
+server.on('upgrade', (request, socket, head) => {
+    const pathname = new URL(request.url || '', `http://${request.headers.host}`).pathname;
+    if (pathname === '/ws') {
+        wss.handleUpgrade(request, socket, head, (ws) => {
+            wss.emit('connection', ws, request);
+        });
+    }
+    else {
+        socket.destroy();
+    }
+});
+// Periodically send updates every 2 seconds to all active WebSocket subscriptions
+setInterval(async () => {
+    for (const client of clients) {
+        if (client.subscribedWorld && client.ws.readyState === ws_1.WebSocket.OPEN) {
+            try {
+                await sendWorldUpdate(client);
+            }
+            catch (e) {
+                console.error('[WS] Error in periodic update interval', e);
+            }
+        }
+    }
+}, 2000);
+server.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`=========================================`);
     console.log(` LiveAtlas Node Backend is running!`);
     console.log(` Port: ${PORT}`);

@@ -202,9 +202,9 @@
             --background-error: rgba(220, 38, 38, 0.2); /* modern soft error */
             --background-marker: rgba(10, 10, 14, 0.85); /* Map markers */
 
-            --background-disabled: rgba(255, 255, 255, 0.03); /* Disabled controls */
-            --background-hover: rgba(255, 255, 255, 0.1); /* :hovered buttons/menu items */
-            --background-active: rgba(255, 255, 255, 0.18); /* Button :active */
+            --background-disabled: #181822; /* Solid disabled controls */
+            --background-hover: #353549; /* Solid hovered buttons/menu items */
+            --background-active: #45455c; /* Solid button active */
             --background-selected: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); /* Selected buttons/menu items */
 
             --outline-focus: #6366f1; /* Modern focus outline */
@@ -212,11 +212,11 @@
             --border-radius: 1.2rem;
             --border-color: rgba(255, 255, 255, 0.08); /* Control borders */
             --border-error: #ef4444;
-            --box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            --box-shadow: none;
 
-            --text-base: rgba(241, 245, 249, 0.75); /* slate-100 with opacity */
+            --text-base: #e2e8f0; /* Solid base text */
             --text-emphasis: #f8fafc; /* Chat messages/:focus inputs */
-            --text-subtle: rgba(241, 245, 249, 0.45); /* Skeletons/secondary text */
+            --text-subtle: #94a3b8; /* Solid secondary text */
             --text-disabled: var(--text-subtle); /* Disabled controls */
             --text-marker: var(--text-base); /* Map markers */
 
@@ -330,15 +330,12 @@
         @keyframes pulse-logo {
             0% {
                 transform: scale(1);
-                filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.2));
             }
             50% {
                 transform: scale(1.05);
-                filter: drop-shadow(0 0 25px rgba(124, 58, 237, 0.55));
             }
             100% {
                 transform: scale(1);
-                filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.2));
             }
         }
 

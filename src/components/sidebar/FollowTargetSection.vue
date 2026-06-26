@@ -155,7 +155,6 @@ export default defineComponent({
 			&.following__target--hidden {
 				.target__icon {
 					filter: grayscale(1);
-					opacity: 0.5;
 				}
 			}
 

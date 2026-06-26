@@ -144,7 +144,7 @@ export default defineComponent({
 
 		.section__content {
 			padding: 0 0.5rem;
-			margin: 0 -.5rem 1rem;
+			margin: 1.5rem -.5rem 1rem;
 			min-width: 0;
 			position: relative;
 

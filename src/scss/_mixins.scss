@@ -72,10 +72,9 @@
 
 	&:hover {
 		transform: translateY(-1px);
-		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12);
+		box-shadow: none;
 
 		.svg-icon {
-			filter: drop-shadow(0 0 5px rgba(129, 140, 248, 0.7));
 			transform: scale(1.08);
 			color: #ffffff;
 		}
@@ -97,11 +96,12 @@
 
 @mixin button-pressed {
 	background: var(--background-selected);
+	background-color: #4f46e5;
 	color: var(--text-selected);
 	font-weight: 700;
 	text-shadow: none;
 	border-color: transparent;
-	box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+	box-shadow: none;
 }
 
 @mixin button-focused {
